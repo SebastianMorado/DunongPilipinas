@@ -1,0 +1,21 @@
+img{
+  width: 120px;
+  height: 40px;
+  margin-top: 10px;
+  margin-right: 25px;
+  margin-bottom: 10px;
+}
+
+.navbar-brand{
+  margin-top: 10px;
+}
+
+ul a{
+  margin-top: 10px;
+}
+
+@media only screen and (max-width: 768px) {
+  img{
+    display: none;
+  }
+}

@@ -1,0 +1,83 @@
+{% extends 'layout.html' %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static',filename='styles/log_event.css') }}" type="text/css">
+{% endblock %}
+
+{% block body_tab %}
+<br /><br /><br /><br />
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-xs-12 col-md-1">
+      <p>
+        <span>Run ID </span> <br />{{row.run_id}}
+      </p>
+    </div>
+    <div class="col-xs-12 col-md-3">
+      <p>
+        <span>Thread ID </span> <br />{{row.thread_id}}
+      </p>
+    </div>
+    <div class="col-xs-12 col-md-3">
+      <p>
+        <span>Thread name </span> <br /><code>{{row.thread_name}}</code>
+      </p>
+    </div>
+    <div class="col-xs-12 col-md-2">
+      <p>
+        <span>Checksum </span><br />{{row.checksum}}
+      </p>
+    </div>
+
+    <div class="col-xs-12 col-md-3">
+      <p>
+        <span>Culprit </span><br />{{row.culprit}}
+      </p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-xs-12 col-md-1">
+      <p>
+        <span>Level </span><br />{{row.level}}
+      </p>
+    </div>
+    <div class="col-xs-12 col-md-3">
+      <p>
+        <span>Timestamp </span><br />{{timestamp}}
+      </p>
+    </div>
+    <div class="col-xs-12 col-md-3">
+      <p>
+        <span>Path </span><br /><code>{{row.pathname}}, line {{row.lineno}}</code>
+      </p>
+    </div>
+    <div class="col-xs-12 col-md-2">
+      <p>
+        <span>User ID </span><br />{{row.user_id}}
+      </p>
+    </div>
+    <div class="col-xs-12 col-md-2">
+      <p>
+        <span>Email </span><br />{{row.email}}
+      </p>
+      <br />
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-xs-12">
+      <p>
+        <span>Message </span><br /><code>{{message}}</code>
+      </p>
+      <p>
+        <span>Exception </span><br /><pre>{{exception}}</pre>
+      </p>
+      <p>
+        <span>Stack trace </span><br /><pre>{{stacktrace}}</pre>
+      </p>
+      <p>
+        <span>Extra </span><br /><pre>{{extra}}</pre>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
