@@ -1,0 +1,13 @@
+<html>
+
+<table>
+	{% for reg in regionx %}
+	<tr>
+		<td>{{reg.Institution.institution_id}}</td>
+		<td>{{reg.Institution.institution_name}}</td>
+		<td>{{reg.Region.province}}</td>
+		<td>{{reg.Region.region_name}}</td>
+	</tr>
+	{% endfor %}
+</table>
+</html>

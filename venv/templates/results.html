@@ -1,0 +1,102 @@
+{% extends 'layout_front.html' %}
+
+{% block inline_js%}
+<script type="text/javascript">
+    $('.ui.accordion')
+        .accordion();
+    $('.ui.dropdown')
+        .dropdown();
+</script>
+{% endblock%}
+
+{% block front_body %}
+<div class="row results-body">
+<div>
+    <div class="ui styled accordion fluid">
+        <div class="title">
+        Search
+        </div>
+        <div class="content">
+            <form class="ui form" action="/search/" method="POST">
+                <input type="hidden" name="page" value="1">
+                <div class="inline field">
+                <label>Search Query</label>
+                <input name="q" placeholder="Search" type="text">
+                </div>
+
+                <div class="inline field">
+                <label>Regions: </label>
+                <select class="ui search dropdown" name="region">
+                    <option class="default" value="">Region</option>
+                    {% for region in regions %}
+                    <option value="{{region.region_name}}">{{region.region_name}}</option>
+                    {% endfor %}
+                </select>
+                </div>
+
+                <div class="inline field">
+                <label>Province: </label>
+                <select class="ui search dropdown" name="province">
+                    <option class="default"  value="">Province</option>
+                    {% for province in provinces %}
+                    <option value="{{province.province}}">{{province.province}}</option>
+                    {% endfor %}
+                </select>
+                </div>
+
+                <div class="inline field">
+                <label>Programs: </label>
+                <select class="ui search dropdown" name="offers">
+                    <option class="default"  value="">Course Offered</option>
+                    {% for course in courses %}
+                    <option value="{{course.program_name}}">{{course.program_name}}</option>
+                    {% endfor %}
+                </select>
+                </div>
+                <button class="ui primary button" type="submit">Search</button>
+            </form>
+        </div>
+    </div>
+
+
+</div>
+Showing {{paging.start}}{%if paging.num_rows > 0%}-{{paging.end}} {%endif%} out of {{paging.num_rows}} rows
+    <table class="ui striped very compact table">
+        <thead>
+            <tr>
+                <th>Institution Name</th>
+                <th>Address</th>
+                <th>Province/Region</th>
+                <th>HEI Type</th>
+                <th>Courses Offered</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if results|length > 0%}
+            {% for row in results %}
+            <tr>
+                <td><a href="/school/{{row.Institution.institution_id}}">{{row.Institution.institution_name}}</a></td>
+                <td>{{row.Institution.street_address}}</td>
+                <td>{{row.Institution.province}}, Region {{row.Region.region_name}}</td>
+                <td>{{row.Institution.hei_type_name}}</td>
+                <td>
+                     {% for program in programs %}
+                     {% if program.Institution.institution_id == row.Institution.institution_id %}
+                        {{program.Offers.program_name}}<br/>
+                     {% endif %}
+                     {% endfor %}
+
+                </td>
+            </tr>
+            {% endfor %}
+            {% else %}
+            <tr>
+                <td>
+                Nothing match found
+                </td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endblock%}

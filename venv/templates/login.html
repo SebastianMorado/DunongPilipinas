@@ -1,0 +1,31 @@
+{% extends 'layout.html' %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static',filename='styles/view.css') }}" type="text/css">
+{% endblock %}
+
+{% block body_tab %}
+<div class="container-fluid font2 register" id="form-container">
+<br /> <br /> <br /> <br />
+{% include 'includes/_messages.html' %}
+<h1>Login</h1>
+  <form action="" method="POST">
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" name="username" class="form-control" value={{request.form.username}}>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" name="password" class="form-control" value={{request.form.password}}>
+    </div>
+    <button type="submit" class="btn btn-primary">Submit</button>
+  </form>
+  <br />
+</div>
+
+{% endblock %}
+
+
+{% block js %}
+
+{% endblock %}

@@ -1,0 +1,17 @@
+
+
+    <ul class="nav nav-tabs">
+     <li class="active"><a data-toggle="tab" href="#app_runs">app_runs</a></li>
+     <li><a data-toggle="tab" href="#log_events">log_events</a></li>
+    </ul>
+
+    <div class="tab-content">
+     <div id="app_runs" class="tab-pane fade in active">
+       {% block body_tab1 %}
+       {% endblock %}
+     </div>
+     <div id="log_events" class="tab-pane fade">
+       {% block body_tab2 %}
+       {% endblock %}
+     </div>
+    </div>

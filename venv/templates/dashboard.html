@@ -1,0 +1,211 @@
+{% extends 'layout.html' %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static',filename='styles/view.css') }}" type="text/css">
+{% endblock %}
+
+
+
+{% block body_tab %}
+{% from "includes/_formhelpers.html" import render_field %}
+<div class="container-fluid" id="dashboard">
+  {% include 'includes/_messages.html' %}
+  <h1>My Dashboard <small>Welcome {{session.username}}</small></h1>
+  <ul class="nav nav-pills" data-tabs="tabs">
+    <li class="active"><a href="#Home" data-toggle="tab" aria-expanded="true">Home</a></li>
+    <li><a href="#New_Stat" data-toggle="tab">Add New Statistics</a></li>
+    <li><a href="#New_Program" data-toggle="tab">Add New Program</a></li>
+    <li><a href="#New_Contact" data-toggle="tab">Add New Contact</a></li>
+    <li><a href="#Update_Program" data-toggle="tab">Update Program</a></li>
+    <li><a href="#Update_Stat" data-toggle="tab">Update Statistic</a></li>
+    <li><a href="#Delete_Contact" data-toggle="tab">Delete Contact</a></li>
+    <li><a href="#Delete_Program" data-toggle="tab">Delete Program</a></li>
+    <li><a href="#View_Stat" data-toggle="tab">View Statistics</a></li>
+  </ul>
+
+</div>
+
+
+<div class="container-fluid">
+  <div class="tab-content">
+    <div class="tab-pane active tab_style" id="Home">
+      <br />Welcome to your homepage. Click on a tab to update table information.<br />
+      This account is for editing information for {{insti_name}}, ID: {{insti_id}}
+    </div>
+    <div class="tab-pane tab_style" id="New_Stat">
+      {% from "includes/_formhelpers.html" import render_field %}
+      <br /> Put N/A if field is missing data<br /><br />
+      <form method="POST" action="">
+        <div class="form-group">
+          {{render_field(form.year, class_="form-control")}}
+        </div>
+        <div class="form-group">
+          {{render_field(form.tpu, class_="form-control")}}
+        </div>
+        <div class="form-group">
+          {{render_field(form.noe, class_="form-control")}}
+        </div>
+        <div class="form-group">
+          {{render_field(form.nog, class_="form-control")}}
+        </div>
+        <div class="form-group">
+          {{render_field(form.nof, class_="form-control")}}
+        </div>
+        <div class="form-group label-hidden">
+          {{render_field(form.submit1, class_="form-control submit")}}
+        </div>
+      </form>
+      <br /> <br />
+    </div>
+    <div class="tab-pane tab_style" id="New_Program">
+      <br />Newly created program will automatically be added to the institution <br /> Put N/A if field is missing data<br /><br />
+      {% from "includes/_formhelpers.html" import render_field %}
+      <form method="POST" action="">
+        <div class="form-group">
+          {{render_field(form.program_name, class_="form-control")}}
+        </div>
+        <div class="form-group">
+          {{render_field(form.description, class_="form-control")}}
+        </div>
+        <div class="form-group">
+          {{render_field(form.duration, class_="form-control")}}
+        </div>
+        <div class="form-group label-hidden">
+          {{render_field(form.submit2, class_="form-control submit")}}
+        </div>
+      </form>
+      <br /><br />
+    </div>
+    <div class="tab-pane tab_style" id="New_Contact">
+       <br />Put N/A if field is missing data. You may put more than one number in the contact number field<br /><br />
+      <form method="POST" action="">
+        <div class="form-group">
+          {{render_field(form.contact_person, class_="form-control")}}
+        </div>
+        <div class="form-group">
+          {{render_field(form.contact_num, class_="form-control")}}
+        </div>
+        <div class="form-group label-hidden">
+          {{render_field(form.submit3, class_="form-control submit")}}
+        </div>
+      </form>
+      <br /><br />
+    </div>
+    <div class="tab-pane tab_style" id="Update_Program">
+      <br />The first field will be used to reference. while the others will update the entry. If you don't want to update a certain field, leave it blank.<br /><br />
+      <form method="POST" action="">
+        <div class="form-group">
+          {{render_field(form.update_program_name, class_="form-control")}}
+        </div>
+        <div class="form-group">
+          {{render_field(form.update_description, class_="form-control")}}
+        </div>
+        <div class="form-group">
+          {{render_field(form.update_duration, class_="form-control")}}
+        </div>
+        <div class="form-group label-hidden">
+          {{render_field(form.submit4, class_="form-control submit")}}
+        </div>
+      </form>
+      <br /><br />
+    </div>
+    <div class="tab-pane tab_style" id="Update_Stat">
+        <br />The first field will be used to reference. while the others will update the entry. If you don't want to update a certain field, leave it blank.<br /><br />
+      <form method="POST" action="">
+        <div class="form-group">
+          {{render_field(form.update_year, class_="form-control")}}
+        </div>
+        <div class="form-group">
+          {{render_field(form.update_tpu, class_="form-control")}}
+        </div>
+        <div class="form-group">
+          {{render_field(form.update_noe, class_="form-control")}}
+        </div>
+        <div class="form-group">
+          {{render_field(form.update_nog, class_="form-control")}}
+        </div>
+        <div class="form-group">
+          {{render_field(form.update_nof, class_="form-control")}}
+        </div>
+        <div class="form-group label-hidden">
+          {{render_field(form.submit5, class_="form-control submit")}}
+        </div>
+      </form>
+      <br /><br />
+    </div>
+    <div class="tab-pane tab_style" id="Delete_Contact">
+        <br />Press the DELETE button to permanently delete an entry<br /><br />
+      <table class="table table-hover table-condensed table-responsive">
+              <thead>
+                <tr>
+                  <th>Contact Person</th>
+                  <th>Contact Number</th>
+                  <th>Delete Entry?</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in contact_rows %}
+                <tr>
+                  <td>{{row.Contact.contact_person}}</td>
+                  <td>{{row.Contact.contact_num}}</td>
+                  <td> <a href="/dashboard/delete_contact/{{row.Contact.contact_num}}">DELETE</a></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+      </table>
+    </div>
+    <div class="tab-pane tab_style" id="Delete_Program">
+      <br />Press the DELETE button to permanently delete an entry<br /><br />
+      <table class="table table-hover table-condensed table-responsive">
+              <thead>
+                <tr>
+                  <th>Program Name</th>
+                  <th>Description</th>
+                  <th>Duration</th>
+                  <th>Delete Entry?</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in program_rows %}
+                <tr>
+                  <td>{{row.Program.program_name}}</td>
+                  <td>{{row.Program.description}}</td>
+                  <td>{{row.Program.duration}}</td>
+                  <td> <a href="/dashboard/delete_program/{{row.Program.program_name}}">DELETE</a></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+      </table>
+    </div>
+    <div class="tab-pane tab_style" id="View_Stat">
+      <table class="table table-hover table-condensed table-responsive">
+              <thead>
+                <tr>
+                  <th>Year</th>
+                  <th>Tuition per Unit</th>
+                  <th>Number of Enrollment</th>
+                  <th>Number of Graduates</th>
+                  <th>Number of Faculty</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in stat_rows %}
+                <tr>
+                  <td>{{row.year}}</td>
+                  <td>{{row.tuition_per_unit}}</td>
+                  <td>{{row.num_of_enrollment}}</td>
+                  <td>{{row.num_of_graduates}}</td>
+                  <td>{{row.num_of_faculty}}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+{% endblock %}
+
+{% block js %}
+{% endblock %}

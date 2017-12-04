@@ -1,0 +1,14 @@
+{% extends 'layout_front.html' %}
+
+{% block front_body %}
+<div class="row">
+	<table>
+		<tr>
+			<td>{{info.Institution.institution_id}}</td>
+			<td>{{info.Institution.institution_name}}</td>
+			<td>{{info.Institution.province}}, Region {{info.Region.region_name}} </td>
+		</tr>
+
+	</table>
+</div>
+{% endblock %}

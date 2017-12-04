@@ -1,0 +1,125 @@
+{% extends 'layout_front.html' %}
+{% block inline_css %}
+<style type="text/css">
+.row .x {
+	background-color: gray;
+}
+.ui.card .meta{
+	margin-top:20px;
+	color: rgba(0,0,0,.8);
+}
+.school{
+	padding-top: 20px;
+}
+
+</style>
+{% endblock%}
+
+{% block inline_js%}
+<script type="text/javascript">
+	$('.menu .item')
+  .tab();
+</script>
+{% endblock %}
+{% block front_body %}
+<div class="ui row main_body grid">
+	<div class="ui row">
+	<div class="column">
+		<!-- -->
+		<p><span><a href="/search">&laquo;Search again</a></span></p>
+		<h2>{{info.Institution.institution_name}}</h2>
+	</div>
+	</div>
+
+	<div class="ui four wide column">
+		<div class="ui card school">
+		  <div class="content">
+		    <div class="header"></div>
+		  <!-- </div>
+		  <div class="content"> -->
+		    <div class="meta">
+		    	<h4 class="ui sub head">
+		    		Address
+		    	</h4>
+				<p>{% if info.Institution.street_address|length > 0 %}{{info.Institution.street_address}}, {% endif %}
+				{{info.Institution.province}}</p>
+				<h4 class="ui sub head">
+		    		Contact Information
+		    	</h4>
+		    	{% if contacts|length > 0%}
+				{% for contact1 in contacts%}
+				<p>Contact Person: {{contact1.contact_person}}</p>
+				<p>Number: {{contact1.contact_num}}</p>
+				{% endfor %}
+				{% else %}
+				No contact information found
+				{% endif %}
+		    </div>
+		  </div>
+		</div>
+	</div>
+
+	<div class="ui twelve wide column">
+		<div class="ui top attached tabular menu">
+		  <a class="item active" data-tab="first">Programs Offered</a>
+		  <a class="item" data-tab="second">Statistics</a>
+		</div>
+		<div class="ui bottom attached tab segment active" data-tab="first">
+			{% if programs|length > 0 %}
+		 	<table  class="ui striped very compact table">
+			<thead>
+				<tr>
+				<th>Program Name</th>
+				<th>Description</th>
+				<th>Duration</th>
+				<th>Classification</th>
+				</tr>
+			</thead>
+			{% for program in programs%}
+			<tr>
+				<td>{{program.Program.program_name}}</td>
+				<td>{{program.Program.description}}</td>
+				<td>{{program.Program.duration}}</td>
+				<td>{{program.Program_Classification.sector_name}}</td>
+
+			</tr>
+			{% endfor%}
+			</table>
+			{% else %}
+			No programs found for {{info.Institution.institution_name}}
+			{% endif %}
+		</div>
+		<div class="ui bottom attached tab segment" data-tab="second">
+			{% if stats|length > 0 %}
+			<table class="ui striped very compact table">
+				<thead>
+					<tr>
+					<th>Year</th>
+					<th>Tuition/unit</th>
+					<th>Enrollment</th>
+					<th>Graduates</th>
+					<th>Faculty</th>
+					</tr>
+				</thead>
+				{% for stat in stats%}
+				<tr>
+					<td>{{stat.year}}</td>
+					<td>{{stat.tuition_per_unit}}</td>
+					<td>{{stat.num_of_enrollment}}</td>
+					<td>{{stat.num_of_graduates}}</td>
+					<td>{{stat.num_of_faculty}}</td>
+
+				</tr>
+				{% endfor%}
+			</table>
+			{% else %}
+			No statistics found for {{info.Institution.institution_name}}
+			{% endif %}
+
+		</div>
+
+	</div>
+
+
+</div>
+{% endblock %}

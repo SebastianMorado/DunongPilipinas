@@ -1,12 +1,13 @@
-from flask import Flask, render_template, flash, redirect, url_for, request, session, logging
+from flask import Flask, render_template, flash, redirect, url_for, request, session, logging, get_flashed_messages
 from functools import wraps
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.sql.expression import func
-from wtforms import Form, StringField, DecimalField, FloatField, DateTimeField, SelectField, BooleanField, IntegerField
+from wtforms import Form, SubmitField, StringField, DecimalField, FloatField, DateTimeField, SelectField, BooleanField, IntegerField, PasswordField, validators
 import time
 from datetime import datetime
 import operator
 import simplejson as json
+from passlib.hash import sha256_crypt
 ops = {"<": operator.lt,
        ">": operator.gt,
        "=": operator.eq,
@@ -14,295 +15,409 @@ ops = {"<": operator.lt,
        ">=": operator.ge}
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///logs.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///DunongPilipinas.db'
 db = SQLAlchemy(app)
 
 
-class App_Runs(db.Model):
-    __tablename__ = 'app_runs'
-    id = db.Column('id', db.Integer, primary_key=True)
-    timestamp = db.Column('timestamp', db.Float, nullable=False)
-    app_version = db.Column('app_version', db.String(15))
-    platform = db.Column('platform', db.String(15))
-    machine_fingerprint = db.Column('machine_fingerprint', db.String(100))
-    machine_name = db.Column('machine_name', db.String(100))
+class Region(db.Model):
+    __tablename__ = 'region'
+    province = db.Column('province', db.String(32), primary_key=True)
+    region_name = db.Column('region_name', db.String(32))
 
-class Event_Logs(db.Model):
-    __tablename__ = 'event_logs'
-    id = db.Column('id', db.Integer, primary_key=True)
-    run_id = db.Column('run_id', db.Integer, nullable=False)
-    thread_id = db.Column('thread_id', db.String(100) , nullable=False)
-    thread_name = db.Column('thread_name', db.String(100) , nullable=False)
-    checksum = db.Column('checksum', db.String(100) , nullable=False)
-    timestamp = db.Column('timestamp', db.Float, nullable=False)
-    level = db.Column('level', db.Integer, nullable=False)
-    culprit = db.Column('culprit', db.String(100))
-    pathname = db.Column('pathname', db.String(100))
-    lineno = db.Column('lineno', db.Integer)
-    user_id = db.Column('user_id', db.String(100))
-    email = db.Column('email', db.String(100))
-    message = db.Column('message', db.String(500), nullable=False)
-    exception = db.Column('exception', db.String(500))
-    stacktrace = db.Column('stacktrace', db.String(500))
-    extra = db.Column('extra', db.String(500))
+    institutions = db.relationship('Institution', backref='region', lazy=True)
 
-class FilterForm1(Form):
-    timestamp_filter = DateTimeField('')
-    timestamp_operator = SelectField(
-        '',
-        choices=[('<', '<'), ('>', '>')]
+class Institution(db.Model):
+    __tablename__ = 'institution'
+    institution_id = db.Column('institution_id', db.Integer, primary_key=True)
+    institution_name = db.Column('institution_name', db.String(128))
+    street_address = db.Column('street_address', db.String(128))
+    province = db.Column('province', db.String(32), db.ForeignKey('region.province'))
+    district = db.Column('district', db.String(32))
+    hei_type_name = db.Column('hei_type_name', db.String(32))
+
+    offers = db.relationship('Offers', backref='institution', lazy=True)
+    statistics = db.relationship('Statistics', backref='institution', lazy=True)
+    contacts = db.relationship('Contact', backref='institution', lazy=True)
+    users = db.relationship('User', backref='institution', lazy=True)
+
+class User(db.Model):
+    __tablename__ = 'users'
+    username = db.Column('username', db.String(25), primary_key=True)
+    password = db.Column('password', db.String(80))
+    user_type = db.Column('user_type', db.String(12))
+    institution_id = db.Column ('institution_id', db.Integer, db.ForeignKey('institution.institution_id'))
+
+class Program(db.Model):
+    __tablename__ = 'program'
+    program_name = db.Column('program_name', db.String(128), primary_key=True)
+    description = db.Column('description', db.String(128))
+    duration = db.Column('duration', db.String(16))
+
+    offers = db.relationship('Offers', backref='program', lazy=True)
+    program_classifications = db.relationship('Program_Classification', backref='program', lazy=True)
+
+class Sector(db.Model):
+    __tablename__ = 'sector'
+    sector_name = db.Column('sector_name', db.String(128), primary_key=True)
+    sector_description = db.Column('sector_description', db.String(128))
+
+    program_classifications = db.relationship('Program_Classification', backref='sector', lazy=True)
+
+class Offers(db.Model):
+    __tablename__ = 'offers'
+    institution_id = db.Column('institution_id', db.Integer, db.ForeignKey('institution.institution_id'), primary_key=True)
+    program_name = db.Column('program_name', db.String(128), db.ForeignKey('program.program_name'), primary_key=True)
+
+class Statistics(db.Model):
+    __tablename__ = 'statistics'
+    institution_id = db.Column('institution_id', db.Integer, db.ForeignKey('institution.institution_id'), primary_key=True)
+    year = db.Column('year', db.Integer, primary_key=True)
+    tuition_per_unit = db.Column('tuition_per_unit', db.Float)
+    num_of_enrollment = db.Column('num_of_enrollment', db.Integer)
+    num_of_graduates = db.Column('num_of_graduates', db.Integer)
+    num_of_faculty = db.Column('num_of_faculty', db.Integer)
+
+class Program_Classification(db.Model):
+    __tablename__ = "program_classification"
+    program_name = db.Column('program_name', db.String(128), db.ForeignKey('program.program_name'), primary_key=True)
+    sector_name = db.Column('sector_name', db.String(128), db.ForeignKey('sector.sector_name'), primary_key=True)
+
+class Contact(db.Model):
+    __tablename__ = 'contact'
+    institution_id = db.Column('institution_id', db.Integer, db.ForeignKey('institution.institution_id'), primary_key=True)
+    contact_person = db.Column('contact_person', db.String(64), primary_key=True)
+    contact_num = db.Column('contact_num', db.String(64))
+
+
+
+@app.route('/')
+def index():
+	list_insti = Institution.query.all()
+	list_province = Region.query.all()
+	return render_template('index.html', insti=list_insti, province=list_province)
+
+@app.route('/search/', methods=['GET','POST'])
+# @app.route('/search/q=<search_str>&page=<int:page>', methods=['GET','POST'])
+@app.route('/search/q=<search_str>', methods=['GET','POST'])
+def search(search_str="", page=1):
+	limit = 200
+	search_str_raw=[]
+	search_prov =""
+	search_region =""
+	search_program=""
+
+	if request.method == 'POST':
+		search_str_raw = request.form.get('q').split(', Region')
+		search_str = search_str_raw[0]
+		page = int(request.form.get('page'))
+		search_prov = request.form.get('province')
+		search_region = request.form.get('region')
+		search_program = request.form.get('offers')
+
+
+	if(len(search_str_raw) > 1):
+		raw_query = db.session.query(Institution,Region).filter(Institution.province == search_str).distinct().join(Region).filter(Institution.province == Region.province)
+	else:
+		raw_query = db.session.query(Institution,Region).filter(db.or_(Institution.institution_name.contains(search_str),Institution.province.contains(search_str))).distinct().join(Region).filter(Institution.province == Region.province)
+
+	from_insti = raw_query.all()
+
+	# If search matched a specific school, redirect
+	if len(from_insti) == 1 and from_insti[0].Institution.institution_name == search_str:
+		return redirect("/school/"+str(from_insti[0].Institution.institution_id))
+
+
+	if(len(search_prov) > 0):
+		raw_query = raw_query.filter(Institution.province == search_prov)
+
+	if(len(search_region) > 0):
+		raw_query = raw_query.filter(Region.region_name == search_region)
+
+	from_insti = raw_query.all()
+	from_insti_id = []
+	for insti in from_insti:
+		from_insti_id.append(insti.Institution.institution_id)
+
+	if(len(search_program) > 0):
+		raw_programs = db.session.query(Institution,Region,Offers).join(Region).join(Offers).filter(db.and_(Offers.program_name == search_program, Institution.institution_id.in_(from_insti_id)))
+		from_insti = raw_programs.all()
+
+
+	# Querying programs
+	list_programs = db.session.query(Institution,Offers).join(Offers).distinct().all()
+
+	## For pagination
+	start = limit*(page-1)
+	end = limit*(page-1)+limit
+
+	paging={}
+	paging['num_rows'] = len(from_insti)
+	if len(from_insti) > end:
+		from_insti=from_insti[start:end]
+	else:
+		end = len(from_insti)
+		from_insti=from_insti[start:]
+	paging['end'] = end
+	if (len(from_insti) > 0):
+		paging['start'] = start+1
+	else:
+		paging['start'] = start
+
+	# For filter dropdown values
+	list_region = db.session.query(Region.region_name).distinct().order_by(Region.region_name).all()
+	list_province = Region.query.order_by(Region.province).all()
+	list_offers = db.session.query(Program.program_name).distinct().order_by(Program.program_name).all()
+
+	return render_template('results.html', results=from_insti, programs=list_programs, paging=paging, provinces=list_province, regions=list_region, courses=list_offers)
+
+@app.route('/school/<int:school_id>')
+def school(school_id):
+	info = db.session.query(Institution,Region).filter(Institution.institution_id==school_id).join(Region).filter(Institution.province == Region.province).one()
+	info_contact = db.session.query(Contact).filter(Contact.institution_id == school_id).all()
+
+	info_programs = db.session.query(Offers,Program,Program_Classification).filter(Offers.institution_id == school_id).join(Program).join(Program_Classification).all()
+	info_stats = db.session.query(Statistics).filter(Statistics.institution_id == school_id).order_by(Statistics.year).all()
+
+	return render_template('school.html', info=info, contacts = info_contact, stats=info_stats, programs=info_programs)
+
+
+
+class RegisterForm(Form):
+    username = StringField('Username', [validators.Length(min=4, max=25), validators.DataRequired()])
+    password = PasswordField('Password', [
+        validators.DataRequired(),
+        validators.EqualTo('confirm', message='Passwords do not match')
+    ])
+    confirm = PasswordField('Confirm Password')
+    user_type = SelectField(
+        'User Type',
+        choices=[('admin', 'admin'), ('contributor', 'contributor')]
     )
-    app_version_filter = StringField('')
-    platform_filter = StringField('')
-    line_limit = IntegerField('')
+    institution_id = IntegerField('Institution ID', [validators.DataRequired()])
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    form = RegisterForm(request.form)
+    if request.method == 'POST' and form.validate():
+        username = form.username.data
+        password = sha256_crypt.encrypt(str(form.password.data))
+        user_type = form.user_type.data
+        institution_id = form.institution_id.data
+        current_user = User.query.filter_by(username=username).first()
+        if current_user:
+            error = 'Username already taken'
+            return render_template('register.html', form=form, error=error)
+        else:
+            new_user = User(username=username, password=password, user_type=user_type, institution_id=institution_id)
+            db.session.add(new_user)
+            db.session.commit()
+            msg = "You are now registered and can log-in"
+            return render_template('login.html', msg=msg)
+    return render_template('register.html', form=form)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        #Get Form Fields
+        username = request.form['username']
+        password_candidate = request.form['password']
+        current_user = User.query.filter_by(username=username).first()
+
+        if current_user:
+            # GET stored hash
+            password = current_user.password
+            #compare Passwords
+            if sha256_crypt.verify(password_candidate, password):
+                session['logged_in'] = True
+                session['username'] = username
+                flash("You are now registered and can log-in", 'success')
+                return redirect(url_for('dashboard'))
+            else:
+                error = 'Invalid Login'
+                return render_template('login.html', error=error)
+            cur.close()
+        else:
+            error = 'Username not found'
+            return render_template('login.html', error=error)
+    else:
+        return render_template('login.html')
+
+def is_logged_in(f):
+    @wraps(f)
+    def wrap(*args, **kwargs):
+        if 'logged_in' in session:
+            return f(*args, **kwargs)
+        else:
+            flash('Unauthorized, Please Log-in', 'danger')
+            return redirect(url_for('login'))
+    return wrap
+
+@app.route('/logout')
+@is_logged_in
+def logout():
+    session.clear()
+    flash('You are now logged out', 'success')
+    return redirect(url_for('login'))
+
+class MasterForm(Form):
+    #Add Stat
+    year = IntegerField('Year')
+    tpu = FloatField('Tuition per Unit')
+    noe = IntegerField('Number of Enrollment')
+    nog = IntegerField('Number of Graduates')
+    nof = IntegerField('Number of Faculty')
+    submit1 = SubmitField('Submit')
+    #Add Program
+    program_name = StringField('Program Name')
+    description = StringField('Description')
+    duration = StringField('Duration')
+    submit2 = SubmitField('Submit')
+    #Add Contact
+    contact_person = StringField('Contact Name')
+    contact_num = StringField('Contact Number')
+    submit3 = SubmitField('Submit')
+    #Update Program
+    update_program_name = StringField('Program Name')
+    update_description = StringField('New Description')
+    update_duration = StringField('New Duration')
+    submit4 = SubmitField('Submit')
+    #Update Statistic
+    update_year = IntegerField('Year')
+    update_tpu = FloatField('Tuition per Unit')
+    update_noe = IntegerField('New Number of Enrollment')
+    update_nog = IntegerField('New Number of Graduates')
+    update_nof = IntegerField('New Number of Faculty')
+    submit5 = SubmitField('Submit')
 
 
-class FilterForm2(Form):
-    run_id_filter = DecimalField('')
-    run_id_latest = BooleanField('')
-    thread_name_filter = StringField('')
-    timestamp_filter = DateTimeField('')
-    timestamp_operator = SelectField(
-        '',
-        choices=[('<', '<'), ('>', '>')]
-    )
-    level_filter = DecimalField('')
-    level_operator = SelectField(
-        '',
-        choices=[('=', '='), ('<', '<'), ('>', '>'), ('<=', '<='), ('>=', '>=')]
-    )
-    culprit_filter = StringField('')
-    pathname_filter = StringField('')
-    lineno_filter = DecimalField('')
-    lineno_operator = SelectField(
-        '',
-        choices=[('=', '='), ('<', '<'), ('>', '>'), ('<=', '<='), ('>=', '>=')]
-    )
-    user_id_filter = StringField('')
-    email_filter = StringField('')
-    message_filter = StringField('')
-    exception_filter = StringField('')
-    exception_check = BooleanField('')
-    stacktrace_filter = StringField('')
-    line_limit = IntegerField('')
 
-
-@app.route('/app_runs', methods=['GET', 'POST'])
-def app_runs():
-    form1 = FilterForm1(request.form, line_limit=100)
+@app.route('/dashboard', methods=['GET', 'POST'])
+@is_logged_in
+def dashboard():
+    form = MasterForm(request.form)
+    username = session['username']
+    user = db.session.query(User).filter(User.username==username).first()
+    institution_id = user.institution_id
+    insti_name = Institution.query.filter_by(institution_id=institution_id).first().institution_name
+    contact_rows = db.session.query(User, Institution, Contact).filter(User.username==username).join(Institution).filter(User.institution_id == Institution.institution_id).join(Contact).filter(Institution.institution_id == Contact.institution_id).all()
+    program_rows = db.session.query(User, Institution, Offers, Program).filter(User.username==username).join(Institution).filter(User.institution_id == Institution.institution_id).join(Offers).filter(Institution.institution_id == Offers.institution_id).join(Program).filter(Offers.program_name == Program.program_name).all()
+    stat_rows = Statistics.query.filter_by(institution_id=institution_id).all()
 
     if request.method == 'POST':
 
+        if form.submit1.data:
+            year = form.year.data
+            tpu = form.tpu.data
+            noe = form.noe.data
+            nog = form.nog.data
+            nof = form.nof.data
+            if Statistics.query.filter_by(year=year).filter_by(institution_id=institution_id).first():
+                flash("ERROR: Statistics for this year already exist", 'error')
+                return redirect(url_for('dashboard'))
 
-        timestamp_filter2 = form1.timestamp_filter.data
-        app_version_filter = form1.app_version_filter.data
-        platform_filter = form1.platform_filter.data
-        line_limit = form1.line_limit.data
+            new_Stat = Statistics(institution_id=institution_id, year=year, tuition_per_unit=tpu, num_of_enrollment=noe, num_of_graduates=noe, num_of_faculty=nof)
+            db.session.add(new_Stat)
+            flash("Successfully added statistic!", 'success')
 
-        timestamp_operator = ops[form1.timestamp_operator.data]
-
-        app_rows = App_Runs.query.all()
-        new_app_rows = []
-        new_timestamps = []
-        #LETS FILTER SHIT BOI
-
-        row_count = 0
-        for row in reversed(app_rows):
-            print(app_version_filter in row.app_version)
-            temp_time = datetime.strptime(time.strftime("%B %d %Y %H:%M:%S", time.localtime(row.timestamp)), "%B %d %Y %H:%M:%S")
-            if ((timestamp_filter2==None or (timestamp_operator(temp_time, timestamp_filter2)))
-                and (app_version_filter in row.app_version)
-                and (platform_filter.upper() in row.platform.upper())):
-                if line_limit!=None and (row_count >= line_limit):
-                    break
-                new_app_rows.append(row)
-                new_timestamps.append(temp_time)
-                row_count+=1
-
-        if line_limit == None:
-            line_limit = 'all'
-        return render_template('app_runs.html', rows1 = zip(new_app_rows, new_timestamps), form1=form1, line_limit=str(line_limit))
-    else:
-        app_rows = App_Runs.query.all()
-        new_timestamps = []
-        new_app_rows = []
-        row_count = 0
-        for row in reversed(app_rows):
-            if row_count >= 100:
-                break
-            temp_time = datetime.strptime(time.strftime("%B %d %Y %H:%M:%S", time.localtime(row.timestamp)), "%B %d %Y %H:%M:%S")
-
-            new_timestamps.append(temp_time)
-            new_app_rows.append(row)
-            row_count+=1
-
-        return render_template('app_runs.html', rows1 = zip(new_app_rows, new_timestamps), form1=form1, line_limit='100')
-
-
-
-@app.route('/log_events', methods=['GET', 'POST'])
-def log_events():
-    form2 = FilterForm2(request.form, line_limit=100)
-
-    if request.method == 'POST':
-        run_id_filter = form2.run_id_filter.data
-        thread_name_filter = form2.thread_name_filter.data
-        timestamp_filter = form2.timestamp_filter.data
-        level_filter = form2.level_filter.data
-        culprit_filter = form2.culprit_filter.data
-        pathname_filter = form2.pathname_filter.data
-        lineno_filter = form2.lineno_filter.data
-        user_id_filter = form2.user_id_filter.data
-        email_filter = form2.email_filter.data
-        message_filter = form2.message_filter.data
-        exception_filter = form2.exception_filter.data
-        stacktrace_filter = form2.stacktrace_filter.data
-        run_id_latest = form2.run_id_latest.data
-
-        timestamp_operator = ops[form2.timestamp_operator.data]
-        level_operator = ops[form2.level_operator.data]
-        lineno_operator = ops[form2.lineno_operator.data]
-
-        exception_check = form2.exception_check.data
-        line_limit = form2.line_limit.data
-
-
-        event_rows = Event_Logs.query.all()
-        latest_rid = 0
-        if run_id_latest:
-            latest_rid = event_rows[-1].run_id
-        new_event_rows = []
-        new_timestamps = []
-        new_messages = []
-        new_exceptions = []
-        is_row_collapsable = []
-        row_count=0
-        current_repeated_row = None
-        number_of_repeats = 1
-        #LETS FILTER SHIT BOI
-        for row in reversed(event_rows):
-            temp_time = datetime.strptime(time.strftime("%B %d %Y %H:%M:%S", time.localtime(row.timestamp)), "%B %d %Y %H:%M:%S")
-
-            if ((user_id_filter=="" or (row.user_id!=None and (user_id_filter.upper() in row.user_id.upper())))
-                and (email_filter=="" or (row.email!=None and (email_filter.upper() in row.email.upper())))
-                and (stacktrace_filter=="" or (row.stacktrace!=None and (stacktrace_filter.upper() in row.stacktrace.upper())))
-                and (exception_filter=="" or (row.exception!=None and (exception_filter.upper() in row.exception.upper())))
-                and (run_id_filter==None or run_id_filter==row.run_id)
-                and (level_filter==None or level_operator(row.level, level_filter))
-                and (lineno_filter==None or level_operator(row.lineno, lineno_filter))
-                and thread_name_filter.upper() in row.thread_name.upper()
-                and culprit_filter.upper() in row.culprit.upper()
-                and pathname_filter.upper() in row.pathname.upper()
-                and message_filter.upper() in row.message.upper()
-                and not (row.exception==None and exception_check)
-                and (row.run_id >= latest_rid)
-                and (timestamp_filter==None or timestamp_operator(temp_time, timestamp_filter))):
-                if line_limit!=None and (row_count >= line_limit):
-                    break
-                message_block = json.loads(row.message)
-                message = message_block.get('message')
-                params = message_block.get('params')
-                new_message = message % tuple(params)
-
-                if row.exception != None:
-                    exception_block = json.loads(row.exception)
-                    exception_message = exception_block.get('type')
-                    new_exceptions.append(exception_message)
-                else:
-                    new_exceptions.append(row.exception)
-
-                new_event_rows.append(row)
-                new_timestamps.append(temp_time)
-                new_messages.append(new_message)
-
-                if row_count==0:
-                    is_row_collapsable.append(0)
-                elif new_messages[row_count]==new_messages[row_count-1] and new_event_rows[row_count].run_id == new_event_rows[row_count-1].run_id:
-                    is_row_collapsable.append(1)
-                    if current_repeated_row == None:
-                        current_repeated_row = row_count-1
-                        is_row_collapsable[current_repeated_row] = 2
-                    number_of_repeats+=1
-                else:
-                    if current_repeated_row != None:
-                        new_messages[current_repeated_row] = "("+str(number_of_repeats)+" counts) "+new_messages[current_repeated_row]
-                        current_repeated_row = None
-                        number_of_repeats = 1
-                    is_row_collapsable.append(0)
-
-                row_count+=1
-        if line_limit==None:
-            line_limit='all'
-        print("Loaded 2!")
-        return render_template('log_events.html', rows2 = zip(new_event_rows, new_timestamps, new_messages, new_exceptions, is_row_collapsable), form2=form2, line_limit=str(line_limit))
-    else:
-        event_rows = Event_Logs.query.all()
-        new_timestamps = []
-        new_messages = []
-        new_exceptions = []
-        new_event_rows = []
-        is_row_collapsable = []
-        row_count = 0
-        current_repeated_row = None
-        number_of_repeats = 1
-        for row in reversed(event_rows):
-            if row_count >= 100:
-                break
-
-            temp_time = datetime.strptime(time.strftime("%B %d %Y %H:%M:%S", time.localtime(row.timestamp)), "%B %d %Y %H:%M:%S")
-            new_timestamps.append(temp_time)
-
-            message_block = json.loads(row.message)
-            message = message_block.get('message')
-            params = message_block.get('params')
-            new_message = message % tuple(params)
-
-            if row.exception != None:
-                exception_block = json.loads(row.exception)
-                exception_message = exception_block.get('type')
-                new_exceptions.append(exception_message)
+        elif form.submit2.data:
+            program_name = form.program_name.data
+            description = form.description.data
+            duration = form.duration.data
+            if Program.query.filter_by(program_name=program_name).first():
+                if Offers.query.filter_by(program_name=program_name).filter_by(institution_id=institution_id).first():
+                    flash("ERROR: Program is already offered", 'error')
+                    return redirect(url_for('dashboard'))
+                new_offer = Offers(institution_id=institution_id, program_name=program_name)
+                db.session.add(new_offer)
             else:
-                new_exceptions.append(row.exception)
-            new_messages.append(new_message)
-            new_event_rows.append(row)
-            if row_count==0:
-                is_row_collapsable.append(0)
-            elif new_messages[row_count]==new_messages[row_count-1] and new_event_rows[row_count].run_id == new_event_rows[row_count-1].run_id:
-                is_row_collapsable.append(1)
-                if current_repeated_row == None:
-                    current_repeated_row = row_count-1
-                    is_row_collapsable[current_repeated_row] = 2
-                number_of_repeats+=1
+                new_program = Program(program_name=program_name, description=description, duration=duration)
+                db.session.add(new_program)
+                new_offer = Offers(institution_id=institution_id, program_name=program_name)
+                db.session.add(new_offer)
+            flash("Successfully added program!", 'success')
+
+        elif form.submit3.data:
+            contact_person = form.contact_person.data
+            contact_num = form.contact_num.data
+            if Contact.query.filter_by(contact_person=contact_person).filter_by(institution_id=institution_id).first():
+                flash("ERROR: Contact already exists", 'error')
+                return redirect(url_for('dashboard'))
+            new_contact = Contact(institution_id=institution_id, contact_person=contact_person, contact_num=contact_num)
+            db.session.add(new_contact)
+            flash("Successfully added contact!", 'success')
+
+        elif form.submit4.data:
+            program_name = form.update_program_name.data
+            description = form.update_description.data
+            duration = form.update_duration.data
+            current_program = Program.query.filter_by(program_name=program_name).first()
+            if current_program:
+                if Offers.query.filter_by(program_name=program_name).filter_by(institution_id=institution_id).first():
+                    if description:
+                        current_program.description = description
+                    if duration:
+                        current_program.duration = duration
+                else:
+                    flash("ERROR: Not allowed to update program not offered by institution", 'error')
+                    return redirect(url_for('dashboard'))
             else:
-                if current_repeated_row != None:
-                    new_messages[current_repeated_row] = "("+str(number_of_repeats)+" counts) "+new_messages[current_repeated_row]
-                    current_repeated_row = None
-                    number_of_repeats = 1
-                is_row_collapsable.append(0)
-            row_count+=1
+                flash("ERROR: Program does not exist", 'error')
+                return redirect(url_for('dashboard'))
+            flash("Successfully updated program!", 'success')
 
-        print("Loaded 1!")
-        return render_template('log_events.html', rows2 = zip(new_event_rows, new_timestamps, new_messages, new_exceptions, is_row_collapsable), form2=form2, line_limit='100')
+        elif form.submit5.data:
+            year = form.update_year.data
+            tpu = form.update_tpu.data
+            noe = form.update_noe.data
+            nog = form.update_nog.data
+            nof = form.update_nof.data
+            current_statistic = Statistics.query.filter_by(year=year).filter_by(institution_id=institution_id).first()
+            if current_statistic:
+                if tpu:
+                    current_statistic.tuition_per_unit = tpu
+                if noe:
+                    current_statistic.num_of_enrollment = noe
+                if nog:
+                    current_statistic.num_of_graduates = nog
+                if nof:
+                    current_statistic.num_of_faculty = nof
+            else:
+                flash("ERROR: No data for this year exists yet", 'error')
+                return redirect(url_for('dashboard'))
+            flash("Successfully updated statistic!", 'success')
 
-@app.route('/log_events/<row_id>', methods=['GET'])
-def log_event(row_id):
-    row = Event_Logs.query.filter(Event_Logs.id==row_id).one()
-    message_block = json.loads(row.message)
-    message = message_block.get('message')
-    params = message_block.get('params')
-    new_message = message % tuple(params)
-    stacktrace=None
-    exception=None
-    extra=None
-    if row.exception != None:
-        exception = json.dumps(json.loads(row.exception), indent=4, sort_keys=False)
-    if row.stacktrace != None:
-        stacktrace = json.dumps(json.loads(row.stacktrace), indent=4, sort_keys=False)
-    if row.exception != None:
-        extra = json.dumps(json.loads(row.extra), indent=4, sort_keys=False)
-    new_time = datetime.strptime(time.strftime("%B %d %Y %H:%M:%S", time.localtime(row.timestamp)), "%B %d %Y %H:%M:%S")
+        db.session.commit()
+        return redirect(url_for('dashboard'))
 
-    return render_template('log_event.html', row=row, message=new_message, timestamp=new_time, stacktrace=stacktrace, exception=exception, extra=extra)
+    return render_template('dashboard.html', form=form, contact_rows=contact_rows, program_rows=program_rows, stat_rows=stat_rows, insti_id=institution_id, insti_name=insti_name)
+
+@app.route('/dashboard/delete_contact/<row_id>', methods=['GET', 'POST'])
+@is_logged_in
+def delete_contact(row_id):
+    username = session['username']
+    user = db.session.query(User).filter(User.username==username).first()
+    institution_id = user.institution_id
+    new_row_id = row_id.replace('%20',' ')
+    contact = db.session.query(Contact).filter(Contact.institution_id==institution_id).filter(Contact.contact_num==new_row_id).first()
+    db.session.delete(contact)
+    db.session.commit()
+    print('Contact successfully deleted')
+    return redirect(url_for('dashboard'))
+
+@app.route('/dashboard/delete_program/<row_id>', methods=['GET', 'POST'])
+@is_logged_in
+def delete_program(row_id):
+    username = session['username']
+    user = db.session.query(User).filter(User.username==username).first()
+    institution_id = user.institution_id
+    new_row_id = row_id.replace('%20',' ')
+    offered = db.session.query(Offers).filter(Offers.institution_id==institution_id).filter(Offers.program_name==new_row_id).first()
+    db.session.delete(offered)
+    db.session.commit()
+    print('Program offered successfully deleted')
+    return redirect(url_for('dashboard'))
+
 
 if __name__ == '__main__':
+    app.secret_key='secret123'
     app.run(debug=True)
